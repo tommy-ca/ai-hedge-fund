@@ -1,26 +1,5 @@
-# Product Requirements (PRD) - Crypto Markets
+# PRD (Moved)
 
-## Goals
-- Add crypto spot markets with CEX and DEX support.
-- Keep existing equities workflows intact (backward compatible).
+This content has been consolidated into the Kiro-style requirements document:
 
-## Must-haves
-- Market type selector: Equities | Crypto CEX | Crypto DEX
-- Instruments: base/quote pairs (e.g., BTC/USDC).
-- 24/7 calendar; configurable bars (1m/5m/1h/1d).
-- Decimal quantities; fees/slippage modeling; gas for DEX.
-- Portfolio valuation in quote currency; USD conversion.
-- DEX AMM execution (Uniswap v3), fee tier, price impact.
-
-## Nice-to-haves
-- Multi-provider fallback (Binance->Coinbase).
-- Volatility-adjusted position sizing.
-
-## Constraints
-- Educational; no execution; public endpoints preferred.
-- Backward compatible API/UI/CLI.
-
-## Data providers and exchanges
-- CEX via CCXT: Binance, OKX, Bybit, Bitget (REST OHLCV, markets metadata)
-- Optional WebSocket via Cryptofeed: trades/orderbook for slippage/impact modeling
-- Graceful rate-limit handling, retries, and caching
+See `requirements.md` in this directory for the source of truth.
