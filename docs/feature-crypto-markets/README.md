@@ -1,5 +1,7 @@
 # Crypto Markets (CEX + DEX) Integration
 
+See: `requirements.md`, `design.md`, `tasks.md` for the Kiro-style spec-driven flow.
+
 ## Purpose
 Add crypto market simulation (CEX spot + DEX AMM) to the AI Hedge Fund while preserving equities behavior.
 
