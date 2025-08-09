@@ -2,15 +2,16 @@
 
 ## Abstractions
 - MarketType: EQUITY | CRYPTO_CEX | CRYPTO_DEX
-- Instrument: { base, quote, exchange?, chain?, pool_address? }
-- MarketDataProvider: get_ohlcv(), get_quote()
+- Instrument: { base, quote, exchange?, market_id?, chain?, pool_address? }
+- MarketDataProvider: get_ohlcv(), get_quote(), get_orderbook(levels=N), get_trades(since)
 - ExecutionSimulator: simulate_buy(), simulate_sell()
-  - CEX: taker fee bps, slippage bps
+  - CEX: taker fee bps, slippage bps (use orderbook/trades when available)
   - DEX: x*y=k AMM (fee tier), gas per trade
 - PortfolioV2: balances by asset (decimals), plus legacy equities mapping
 
 ## Providers
-- CEX: Binance (klines), Coinbase (candles)
+- CEX (via CCXT): Binance, OKX, Bybit, Bitget (OHLCV/markets)
+- Optional WebSocket (via Cryptofeed): trades/orderbook streams for the above
 - DEX: Uniswap v3 via The Graph (poolDayData/hourData)
 
 ## Backtester Changes

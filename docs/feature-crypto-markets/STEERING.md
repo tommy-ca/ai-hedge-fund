@@ -6,9 +6,14 @@
 - Prefer simple, testable simulators over perfect realism
 
 ## Key Decisions
-- Use public CEX endpoints initially (Binance/Coinbase)
+- Use CCXT for CEX REST/data (Binance, OKX, Bybit, Bitget)
+- Use Cryptofeed for WebSocket (trades/orderbook) where needed
 - Use The Graph for Uniswap v3 pool data; AMM math for fills
 - Decimal portfolio balances; keep equities positions intact via mapping
+
+## Risks
+- Exchange-specific quirks and symbol mappings; mitigate with unified adapter and tests
+- Rate limits and disconnects; mitigate with backoff, retries, and caching
 
 ## Open Questions
 - Which chains/pools to support beyond mainnet v3?

@@ -19,3 +19,8 @@
 ## Constraints
 - Educational; no execution; public endpoints preferred.
 - Backward compatible API/UI/CLI.
+
+## Data providers and exchanges
+- CEX via CCXT: Binance, OKX, Bybit, Bitget (REST OHLCV, markets metadata)
+- Optional WebSocket via Cryptofeed: trades/orderbook for slippage/impact modeling
+- Graceful rate-limit handling, retries, and caching
