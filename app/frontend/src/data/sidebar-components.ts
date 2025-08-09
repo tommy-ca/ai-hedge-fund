@@ -3,12 +3,12 @@ import {
   Bot,
   Brain,
   Calculator,
-  FileJson,
-  FileText,
+  ChartLine,
+  ChartPie,
   LucideIcon,
-  Monitor,
   Network,
-  Play
+  Play,
+  Zap
 } from 'lucide-react';
 import { Agent, getAgents } from './agents';
 
@@ -33,40 +33,41 @@ export const getComponentGroups = async (): Promise<ComponentGroup[]> => {
   
   return [
     {
-      name: "start nodes",
+      name: "Start Nodes",
       icon: Play,
-      iconColor: "text-blue-400",
+      iconColor: "text-blue-500",
       items: [
-        // { name: "Chat Input", icon: MessageSquare },
-        { name: "Portfolio Manager", icon: Brain },
-        // { name: "File Input", icon: FileText }
+        { name: "Portfolio Input", icon: ChartPie },
+        { name: "Stock Input", icon: ChartLine },
       ]
     },
     {
-      name: "agents",
+      name: "Analysts",
       icon: Bot,
-      iconColor: "text-red-400",
+      iconColor: "text-red-500",
       items: agents.map((agent: Agent) => ({
         name: agent.display_name,
         icon: Bot
       }))
     },
     {
-      name: "swarms",
+      name: "Swarms",
       icon: Network,
-      iconColor: "text-yellow-400",
+      iconColor: "text-yellow-500",
       items: [
         { name: "Data Wizards", icon: Calculator },
+        { name: "Market Mavericks", icon: Zap },
         { name: "Value Investors", icon: BadgeDollarSign },
       ]
     },
     {
-      name: "outputs",
-      icon: Monitor,
-      iconColor: "text-green-400",
+      name: "End Nodes",
+      icon: Brain,
+      iconColor: "text-green-500",
       items: [
-        { name: "JSON Output", icon: FileJson },
-        { name: "Investment Report", icon: FileText },
+        { name: "Portfolio Manager", icon: Brain },
+        // { name: "JSON Output", icon: FileJson },
+        // { name: "Investment Report", icon: FileText },
       ]
     },
   ];

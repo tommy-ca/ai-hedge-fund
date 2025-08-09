@@ -5,6 +5,7 @@ import { TabBar } from '@/components/tabs/tab-bar';
 import { TabContent } from '@/components/tabs/tab-content';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { FlowProvider, useFlowContext } from '@/contexts/flow-context';
+import { LayoutProvider, useLayoutContext } from '@/contexts/layout-context';
 import { TabsProvider, useTabsContext } from '@/contexts/tabs-context';
 import { useLayoutKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { cn } from '@/lib/utils';
@@ -14,22 +15,19 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { ReactNode, useEffect, useState } from 'react';
 import { TopBar } from './layout/top-bar';
 
-// Create a LayoutContent component to access the FlowContext and TabsContext
+// Create a LayoutContent component to access the FlowContext, TabsContext, and LayoutContext
 function LayoutContent({ children }: { children: ReactNode }) {
   const { reactFlowInstance } = useFlowContext();
   const { openTab } = useTabsContext();
+  const { isBottomCollapsed, expandBottomPanel, collapseBottomPanel, toggleBottomPanel } = useLayoutContext();
   
   // Initialize sidebar states from storage service
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(() => 
-    SidebarStorageService.loadLeftSidebarState(true)
+    SidebarStorageService.loadLeftSidebarState(false)
   );
   
   const [isRightCollapsed, setIsRightCollapsed] = useState(() => 
-    SidebarStorageService.loadRightSidebarState(true)
-  );
-
-  const [isBottomCollapsed, setIsBottomCollapsed] = useState(() => 
-    SidebarStorageService.loadBottomPanelState(true)
+    SidebarStorageService.loadRightSidebarState(false)
   );
 
   // Track actual sidebar widths for dynamic positioning
@@ -50,7 +48,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
     // Note: undo/redo will be handled directly in the Flow component for now
     undefined, // undo
     undefined, // redo
-    () => setIsBottomCollapsed(!isBottomCollapsed), // Cmd+J for bottom panel
+    toggleBottomPanel, // Cmd+J for bottom panel
     handleSettingsClick, // Shift+Cmd+J for settings
   );
 
@@ -62,10 +60,6 @@ function LayoutContent({ children }: { children: ReactNode }) {
   useEffect(() => {
     SidebarStorageService.saveRightSidebarState(isRightCollapsed);
   }, [isRightCollapsed]);
-
-  useEffect(() => {
-    SidebarStorageService.saveBottomPanelState(isBottomCollapsed);
-  }, [isBottomCollapsed]);
 
   // Calculate tab bar and bottom panel positioning based on actual sidebar widths
   const getSidebarBasedStyle = () => {
@@ -115,7 +109,7 @@ function LayoutContent({ children }: { children: ReactNode }) {
         isBottomCollapsed={isBottomCollapsed}
         onToggleLeft={() => setIsLeftCollapsed(!isLeftCollapsed)}
         onToggleRight={() => setIsRightCollapsed(!isRightCollapsed)}
-        onToggleBottom={() => setIsBottomCollapsed(!isBottomCollapsed)}
+        onToggleBottom={toggleBottomPanel}
         onSettingsClick={handleSettingsClick}
       />
 
@@ -149,7 +143,6 @@ function LayoutContent({ children }: { children: ReactNode }) {
           isCollapsed={isLeftCollapsed}
           onCollapse={() => setIsLeftCollapsed(true)}
           onExpand={() => setIsLeftCollapsed(false)}
-          onToggleCollapse={() => setIsLeftCollapsed(!isLeftCollapsed)}
           onWidthChange={setLeftSidebarWidth}
         />
       </div>
@@ -163,7 +156,6 @@ function LayoutContent({ children }: { children: ReactNode }) {
           isCollapsed={isRightCollapsed}
           onCollapse={() => setIsRightCollapsed(true)}
           onExpand={() => setIsRightCollapsed(false)}
-          onToggleCollapse={() => setIsRightCollapsed(!isRightCollapsed)}
           onWidthChange={setRightSidebarWidth}
         />
       </div>
@@ -178,9 +170,9 @@ function LayoutContent({ children }: { children: ReactNode }) {
       >
         <BottomPanel
           isCollapsed={isBottomCollapsed}
-          onCollapse={() => setIsBottomCollapsed(true)}
-          onExpand={() => setIsBottomCollapsed(false)}
-          onToggleCollapse={() => setIsBottomCollapsed(!isBottomCollapsed)}
+          onCollapse={collapseBottomPanel}
+          onExpand={expandBottomPanel}
+          onToggleCollapse={toggleBottomPanel}
           onHeightChange={setBottomPanelHeight}
         />
       </div>
@@ -188,9 +180,9 @@ function LayoutContent({ children }: { children: ReactNode }) {
   );
 }
 
-type LayoutProps = {
-  children?: ReactNode;
-};
+interface LayoutProps {
+  children: ReactNode;
+}
 
 export function Layout({ children }: LayoutProps) {
   return (
@@ -198,7 +190,9 @@ export function Layout({ children }: LayoutProps) {
       <ReactFlowProvider>
         <FlowProvider>
           <TabsProvider>
-            <LayoutContent>{children}</LayoutContent>
+            <LayoutProvider>
+              <LayoutContent>{children}</LayoutContent>
+            </LayoutProvider>
           </TabsProvider>
         </FlowProvider>
       </ReactFlowProvider>

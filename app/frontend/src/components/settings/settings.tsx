@@ -1,8 +1,9 @@
 import { cn } from '@/lib/utils';
 import { CubeIcon } from '@radix-ui/react-icons';
-import { Key, Palette, Settings2, Workflow } from 'lucide-react';
+import { Key, Palette } from 'lucide-react';
 import { useState } from 'react';
-import { ApiKeysSettings, AppearanceSettings, FlowsSettings, GeneralSettings, Models } from './';
+import { ApiKeysSettings, Models } from './';
+import { ThemeSettings } from './appearance';
 
 interface SettingsProps {
   className?: string;
@@ -16,15 +17,9 @@ interface SettingsNavItem {
 }
 
 export function Settings({ className }: SettingsProps) {
-  const [selectedSection, setSelectedSection] = useState('models');
+  const [selectedSection, setSelectedSection] = useState('api');
 
   const navigationItems: SettingsNavItem[] = [
-    {
-      id: 'general',
-      label: 'General',
-      icon: Settings2,
-      description: 'General application settings and preferences',
-    },
     {
       id: 'api',
       label: 'API Keys',
@@ -38,14 +33,8 @@ export function Settings({ className }: SettingsProps) {
       description: 'Local and cloud AI models',
     },
     {
-      id: 'flows',
-      label: 'Flows',
-      icon: Workflow,
-      description: 'Flow and node configuration',
-    },
-    {
-      id: 'appearance',
-      label: 'Appearance',
+      id: 'theme',
+      label: 'Theme',
       icon: Palette,
       description: 'Theme and display preferences',
     },
@@ -53,14 +42,10 @@ export function Settings({ className }: SettingsProps) {
 
   const renderContent = () => {
     switch (selectedSection) {
-      case 'general':
-        return <GeneralSettings />;
       case 'models':
         return <Models />;
-      case 'flows':
-        return <FlowsSettings />;
-      case 'appearance':
-        return <AppearanceSettings />;
+      case 'theme':
+        return <ThemeSettings />;
       case 'api':
         return <ApiKeysSettings />;
       default:
@@ -73,8 +58,8 @@ export function Settings({ className }: SettingsProps) {
       <div className="flex w-full max-w-7xl mx-auto">
         {/* Left Navigation Pane */}
         <div className="w-60 bg-panel flex-shrink-0">
-          <div className="p-4 border-b border-gray-700 dark:border-gray-800">
-            <h1 className="text-lg font-semibold text-gray-100 dark:text-gray-100">Settings</h1>
+          <div className="p-4 border-b">
+            <h1 className="text-lg font-semibold text-primary">Settings</h1>
           </div>
           <nav className="p-2">
             {navigationItems.map((item) => {
@@ -87,8 +72,8 @@ export function Settings({ className }: SettingsProps) {
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2 text-left rounded-md text-sm transition-colors",
                     isSelected 
-                      ? "bg-gray-700 dark:bg-gray-800 text-gray-100 dark:text-gray-100 shadow-sm" 
-                      : "text-gray-300 dark:text-gray-400 hover:text-gray-100 dark:hover:text-gray-100 hover:bg-gray-700/50 dark:hover:bg-gray-800/50"
+                      ? "active-bg text-blue-500" 
+                      : "text-primary hover-item"
                   )}
                 >
                   <Icon className="h-4 w-4 flex-shrink-0" />

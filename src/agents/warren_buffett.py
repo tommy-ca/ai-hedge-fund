@@ -7,7 +7,7 @@ from typing_extensions import Literal
 from src.tools.api import get_financial_metrics, get_market_cap, search_line_items
 from src.utils.llm import call_llm
 from src.utils.progress import progress
-
+from src.utils.api_key import get_api_key_from_state
 
 class WarrenBuffettSignal(BaseModel):
     signal: Literal["bullish", "bearish", "neutral"]
@@ -15,22 +15,22 @@ class WarrenBuffettSignal(BaseModel):
     reasoning: str
 
 
-def warren_buffett_agent(state: AgentState):
+def warren_buffett_agent(state: AgentState, agent_id: str = "warren_buffett_agent"):
     """Analyzes stocks using Buffett's principles and LLM reasoning."""
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
-
+    api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     # Collect all analysis for LLM reasoning
     analysis_data = {}
     buffett_analysis = {}
 
     for ticker in tickers:
-        progress.update_status("warren_buffett_agent", ticker, "Fetching financial metrics")
+        progress.update_status(agent_id, ticker, "Fetching financial metrics")
         # Fetch required data - request more periods for better trend analysis
-        metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=10)
+        metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=10, api_key=api_key)
 
-        progress.update_status("warren_buffett_agent", ticker, "Gathering financial line items")
+        progress.update_status(agent_id, ticker, "Gathering financial line items")
         financial_line_items = search_line_items(
             ticker,
             [
@@ -50,32 +50,33 @@ def warren_buffett_agent(state: AgentState):
             end_date,
             period="ttm",
             limit=10,
+            api_key=api_key,
         )
 
-        progress.update_status("warren_buffett_agent", ticker, "Getting market cap")
+        progress.update_status(agent_id, ticker, "Getting market cap")
         # Get current market cap
-        market_cap = get_market_cap(ticker, end_date)
+        market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
-        progress.update_status("warren_buffett_agent", ticker, "Analyzing fundamentals")
+        progress.update_status(agent_id, ticker, "Analyzing fundamentals")
         # Analyze fundamentals
         fundamental_analysis = analyze_fundamentals(metrics)
 
-        progress.update_status("warren_buffett_agent", ticker, "Analyzing consistency")
+        progress.update_status(agent_id, ticker, "Analyzing consistency")
         consistency_analysis = analyze_consistency(financial_line_items)
 
-        progress.update_status("warren_buffett_agent", ticker, "Analyzing competitive moat")
+        progress.update_status(agent_id, ticker, "Analyzing competitive moat")
         moat_analysis = analyze_moat(metrics)
 
-        progress.update_status("warren_buffett_agent", ticker, "Analyzing pricing power")
+        progress.update_status(agent_id, ticker, "Analyzing pricing power")
         pricing_power_analysis = analyze_pricing_power(financial_line_items, metrics)
 
-        progress.update_status("warren_buffett_agent", ticker, "Analyzing book value growth")
+        progress.update_status(agent_id, ticker, "Analyzing book value growth")
         book_value_analysis = analyze_book_value_growth(financial_line_items)
 
-        progress.update_status("warren_buffett_agent", ticker, "Analyzing management quality")
+        progress.update_status(agent_id, ticker, "Analyzing management quality")
         mgmt_analysis = analyze_management_quality(financial_line_items)
 
-        progress.update_status("warren_buffett_agent", ticker, "Calculating intrinsic value")
+        progress.update_status(agent_id, ticker, "Calculating intrinsic value")
         intrinsic_value_analysis = calculate_intrinsic_value(financial_line_items)
 
         # Calculate total score without circle of competence (LLM will handle that)
@@ -119,11 +120,12 @@ def warren_buffett_agent(state: AgentState):
             "margin_of_safety": margin_of_safety,
         }
 
-        progress.update_status("warren_buffett_agent", ticker, "Generating Warren Buffett analysis")
+        progress.update_status(agent_id, ticker, "Generating Warren Buffett analysis")
         buffett_output = generate_buffett_output(
             ticker=ticker,
             analysis_data=analysis_data,
             state=state,
+            agent_id=agent_id,
         )
 
         # Store analysis in consistent format with other agents
@@ -133,19 +135,19 @@ def warren_buffett_agent(state: AgentState):
             "reasoning": buffett_output.reasoning,
         }
 
-        progress.update_status("warren_buffett_agent", ticker, "Done", analysis=buffett_output.reasoning)
+        progress.update_status(agent_id, ticker, "Done", analysis=buffett_output.reasoning)
 
     # Create the message
-    message = HumanMessage(content=json.dumps(buffett_analysis), name="warren_buffett_agent")
+    message = HumanMessage(content=json.dumps(buffett_analysis), name=agent_id)
 
     # Show reasoning if requested
     if state["metadata"]["show_reasoning"]:
-        show_agent_reasoning(buffett_analysis, "Warren Buffett Agent")
+        show_agent_reasoning(buffett_analysis, agent_id)
 
     # Add the signal to the analyst_signals list
-    state["data"]["analyst_signals"]["warren_buffett_agent"] = buffett_analysis
+    state["data"]["analyst_signals"][agent_id] = buffett_analysis
 
-    progress.update_status("warren_buffett_agent", None, "Done")
+    progress.update_status(agent_id, None, "Done")
 
     return {"messages": [message], "data": state["data"]}
 
@@ -734,6 +736,7 @@ def generate_buffett_output(
     ticker: str,
     analysis_data: dict[str, any],
     state: AgentState,
+    agent_id: str = "warren_buffett_agent",
 ) -> WarrenBuffettSignal:
     """Get investment decision from LLM with Buffett's principles"""
     template = ChatPromptTemplate.from_messages(
@@ -835,7 +838,7 @@ def generate_buffett_output(
     return call_llm(
         prompt=prompt,
         pydantic_model=WarrenBuffettSignal,
-        agent_name="warren_buffett_agent",
+        agent_name=agent_id,
         state=state,
         default_factory=create_default_warren_buffett_signal,
     )

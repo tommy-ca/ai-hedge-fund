@@ -7,6 +7,7 @@ import json
 from typing_extensions import Literal
 from src.utils.progress import progress
 from src.utils.llm import call_llm
+from src.utils.api_key import get_api_key_from_state
 
 class CharlieMungerSignal(BaseModel):
     signal: Literal["bullish", "bearish", "neutral"]
@@ -14,7 +15,7 @@ class CharlieMungerSignal(BaseModel):
     reasoning: str
 
 
-def charlie_munger_agent(state: AgentState):
+def charlie_munger_agent(state: AgentState, agent_id: str = "charlie_munger_agent"):
     """
     Analyzes stocks using Charlie Munger's investing principles and mental models.
     Focuses on moat strength, management quality, predictability, and valuation.
@@ -22,15 +23,15 @@ def charlie_munger_agent(state: AgentState):
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
-    
+    api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     analysis_data = {}
     munger_analysis = {}
     
     for ticker in tickers:
-        progress.update_status("charlie_munger_agent", ticker, "Fetching financial metrics")
-        metrics = get_financial_metrics(ticker, end_date, period="annual", limit=10)  # Munger looks at longer periods
+        progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        metrics = get_financial_metrics(ticker, end_date, period="annual", limit=10, api_key=api_key)  # Munger looks at longer periods
         
-        progress.update_status("charlie_munger_agent", ticker, "Gathering financial line items")
+        progress.update_status(agent_id, ticker, "Gathering financial line items")
         financial_line_items = search_line_items(
             ticker,
             [
@@ -51,42 +52,45 @@ def charlie_munger_agent(state: AgentState):
             ],
             end_date,
             period="annual",
-            limit=10  # Munger examines long-term trends
+            limit=10,  # Munger examines long-term trends
+            api_key=api_key,
         )
         
-        progress.update_status("charlie_munger_agent", ticker, "Getting market cap")
-        market_cap = get_market_cap(ticker, end_date)
+        progress.update_status(agent_id, ticker, "Getting market cap")
+        market_cap = get_market_cap(ticker, end_date, api_key=api_key)
         
-        progress.update_status("charlie_munger_agent", ticker, "Fetching insider trades")
+        progress.update_status(agent_id, ticker, "Fetching insider trades")
         # Munger values management with skin in the game
         insider_trades = get_insider_trades(
             ticker,
             end_date,
             # Look back 2 years for insider trading patterns
             start_date=None,
-            limit=100
+            limit=100,
+            api_key=api_key,
         )
         
-        progress.update_status("charlie_munger_agent", ticker, "Fetching company news")
+        progress.update_status(agent_id, ticker, "Fetching company news")
         # Munger avoids businesses with frequent negative press
         company_news = get_company_news(
             ticker,
             end_date,
             # Look back 1 year for news
             start_date=None,
-            limit=100
+            limit=100,
+            api_key=api_key,
         )
         
-        progress.update_status("charlie_munger_agent", ticker, "Analyzing moat strength")
+        progress.update_status(agent_id, ticker, "Analyzing moat strength")
         moat_analysis = analyze_moat_strength(metrics, financial_line_items)
         
-        progress.update_status("charlie_munger_agent", ticker, "Analyzing management quality")
+        progress.update_status(agent_id, ticker, "Analyzing management quality")
         management_analysis = analyze_management_quality(financial_line_items, insider_trades)
         
-        progress.update_status("charlie_munger_agent", ticker, "Analyzing business predictability")
+        progress.update_status(agent_id, ticker, "Analyzing business predictability")
         predictability_analysis = analyze_predictability(financial_line_items)
         
-        progress.update_status("charlie_munger_agent", ticker, "Calculating Munger-style valuation")
+        progress.update_status(agent_id, ticker, "Calculating Munger-style valuation")
         valuation_analysis = calculate_munger_valuation(financial_line_items, market_cap)
         
         # Combine partial scores with Munger's weighting preferences
@@ -120,11 +124,12 @@ def charlie_munger_agent(state: AgentState):
             "news_sentiment": analyze_news_sentiment(company_news) if company_news else "No news data available"
         }
         
-        progress.update_status("charlie_munger_agent", ticker, "Generating Charlie Munger analysis")
+        progress.update_status(agent_id, ticker, "Generating Charlie Munger analysis")
         munger_output = generate_munger_output(
             ticker=ticker, 
             analysis_data=analysis_data,
             state=state,
+            agent_id=agent_id,
         )
         
         munger_analysis[ticker] = {
@@ -133,22 +138,22 @@ def charlie_munger_agent(state: AgentState):
             "reasoning": munger_output.reasoning
         }
         
-        progress.update_status("charlie_munger_agent", ticker, "Done", analysis=munger_output.reasoning)
+        progress.update_status(agent_id, ticker, "Done", analysis=munger_output.reasoning)
     
     # Wrap results in a single message for the chain
     message = HumanMessage(
         content=json.dumps(munger_analysis),
-        name="charlie_munger_agent"
+        name=agent_id
     )
     
     # Show reasoning if requested
     if state["metadata"]["show_reasoning"]:
         show_agent_reasoning(munger_analysis, "Charlie Munger Agent")
 
-    progress.update_status("charlie_munger_agent", None, "Done")
+    progress.update_status(agent_id, None, "Done")
     
     # Add signals to the overall state
-    state["data"]["analyst_signals"]["charlie_munger_agent"] = munger_analysis
+    state["data"]["analyst_signals"][agent_id] = munger_analysis
 
     return {
         "messages": [message],
@@ -677,6 +682,7 @@ def generate_munger_output(
     ticker: str,
     analysis_data: dict[str, any],
     state: AgentState,
+    agent_id: str,
 ) -> CharlieMungerSignal:
     """
     Generates investment decisions in the style of Charlie Munger.
@@ -751,6 +757,6 @@ def generate_munger_output(
         prompt=prompt,
         state=state,
         pydantic_model=CharlieMungerSignal, 
-        agent_name="charlie_munger_agent", 
+        agent_name=agent_id, 
         default_factory=create_default_charlie_munger_signal,
     )

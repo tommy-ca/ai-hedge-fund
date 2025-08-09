@@ -4,47 +4,48 @@ from src.utils.progress import progress
 import pandas as pd
 import numpy as np
 import json
-
+from src.utils.api_key import get_api_key_from_state
 from src.tools.api import get_insider_trades, get_company_news
 
 
 ##### Sentiment Agent #####
-def sentiment_analyst_agent(state: AgentState):
+def sentiment_analyst_agent(state: AgentState, agent_id: str = "sentiment_analyst_agent"):
     """Analyzes market sentiment and generates trading signals for multiple tickers."""
     data = state.get("data", {})
     end_date = data.get("end_date")
     tickers = data.get("tickers")
-
+    api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     # Initialize sentiment analysis for each ticker
     sentiment_analysis = {}
 
     for ticker in tickers:
-        progress.update_status("sentiment_analyst_agent", ticker, "Fetching insider trades")
+        progress.update_status(agent_id, ticker, "Fetching insider trades")
 
         # Get the insider trades
         insider_trades = get_insider_trades(
             ticker=ticker,
             end_date=end_date,
             limit=1000,
+            api_key=api_key,
         )
 
-        progress.update_status("sentiment_analyst_agent", ticker, "Analyzing trading patterns")
+        progress.update_status(agent_id, ticker, "Analyzing trading patterns")
 
         # Get the signals from the insider trades
         transaction_shares = pd.Series([t.transaction_shares for t in insider_trades]).dropna()
         insider_signals = np.where(transaction_shares < 0, "bearish", "bullish").tolist()
 
-        progress.update_status("sentiment_analyst_agent", ticker, "Fetching company news")
+        progress.update_status(agent_id, ticker, "Fetching company news")
 
         # Get the company news
-        company_news = get_company_news(ticker, end_date, limit=100)
+        company_news = get_company_news(ticker, end_date, limit=100, api_key=api_key)
 
         # Get the sentiment from the company news
         sentiment = pd.Series([n.sentiment for n in company_news]).dropna()
         news_signals = np.where(sentiment == "negative", "bearish", 
                               np.where(sentiment == "positive", "bullish", "neutral")).tolist()
         
-        progress.update_status("sentiment_analyst_agent", ticker, "Combining signals")
+        progress.update_status(agent_id, ticker, "Combining signals")
         # Combine signals from both sources with weights
         insider_weight = 0.3
         news_weight = 0.7
@@ -114,12 +115,12 @@ def sentiment_analyst_agent(state: AgentState):
             "reasoning": reasoning,
         }
 
-        progress.update_status("sentiment_analyst_agent", ticker, "Done", analysis=json.dumps(reasoning, indent=4))
+        progress.update_status(agent_id, ticker, "Done", analysis=json.dumps(reasoning, indent=4))
 
     # Create the sentiment message
     message = HumanMessage(
         content=json.dumps(sentiment_analysis),
-        name="sentiment_analyst_agent",
+        name=agent_id,
     )
 
     # Print the reasoning if the flag is set
@@ -127,9 +128,9 @@ def sentiment_analyst_agent(state: AgentState):
         show_agent_reasoning(sentiment_analysis, "Sentiment Analysis Agent")
 
     # Add the signal to the analyst_signals list
-    state["data"]["analyst_signals"]["sentiment_agent"] = sentiment_analysis
+    state["data"]["analyst_signals"][agent_id] = sentiment_analysis
 
-    progress.update_status("sentiment_analyst_agent", None, "Done")
+    progress.update_status(agent_id, None, "Done")
 
     return {
         "messages": [message],
